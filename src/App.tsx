@@ -3,7 +3,6 @@ import axios from 'axios';
 import './App.css';
 
 interface Flight {
-  // id: string test
   airline_name: string;
   departure_time: string;
   arrival_time: string;
@@ -32,6 +31,24 @@ interface SearchAirportResponse {
   data: Airport[];
 }
 
+interface FlightLeg {
+  departure: string;
+  arrival: string;
+  carriers: {
+    marketing: {
+      name: string;
+      logoUrl: string;
+    }[];
+  };
+}
+
+interface FlightItinerary {
+  legs: FlightLeg[];
+  price: {
+    raw: number;
+  };
+}
+
 interface FlightSearchResponse {
   status: boolean;
   data: {
@@ -39,7 +56,7 @@ interface FlightSearchResponse {
       status: string;
       totalResults: number;
     };
-    itineraries: unknown[];
+    itineraries: FlightItinerary[];
   };
 }
 
@@ -69,7 +86,7 @@ const App: React.FC = () => {
           },
         }
       );
-      
+  
       if (response.data.status && response.data.data.length > 0) {
         return response.data.data[0];
       } else {
@@ -81,7 +98,7 @@ const App: React.FC = () => {
     }
   };
 
-  const transform = (itineraries: any[]): Flight[] => {
+  const transform = (itineraries: FlightItinerary[]): Flight[] => {
     return itineraries.map((itinerary) => {
       const leg = itinerary.legs[0];
       const marketing = leg?.carriers?.marketing;
@@ -108,23 +125,23 @@ const App: React.FC = () => {
     setError('');
     setHasSearched(false);
     setResults([]);
-
+  
     try {
       const originAirport = await searchAirport(origin);
       const destinationAirport = await searchAirport(destination);
-
+  
       if (!originAirport || !destinationAirport) {
         setError('Could not find the selected airport.');
         setLoading(false);
         setHasSearched(true);
         return;
       }
-
+  
       const originSkyId = originAirport.navigation.relevantFlightParams.skyId;
       const originEntityId = originAirport.navigation.entityId;
       const destinationSkyId = destinationAirport.navigation.relevantFlightParams.skyId;
       const destinationEntityId = destinationAirport.navigation.entityId;
-
+  
       const flightResponse = await axios.get<FlightSearchResponse>(
         `https://${RAPIDAPI_HOST}/api/v1/flights/searchFlights`,
         {
@@ -141,10 +158,12 @@ const App: React.FC = () => {
           },
         }
       );
-
+  
       if (flightResponse.data.status) {
         const flights = transform(flightResponse.data.data.itineraries);
-
+  
+        flights.sort((a, b) => a.price - b.price);
+  
         setResults(flights);
       } else {
         setError('The flight search was unsuccessful.');
@@ -156,6 +175,13 @@ const App: React.FC = () => {
       setLoading(false);
       setHasSearched(true);
     }
+  };
+
+  const formatDateTime = (date: string): string => {
+    if (!date) return 'N/A';
+  
+    const localDate = new Date(date);
+    return localDate.toLocaleString();
   };
 
   return (
@@ -219,9 +245,10 @@ const App: React.FC = () => {
           <div className="spinner"></div>
         </div>
       )}
+
       {error && <p className="status error">{error}</p>}
 
-      {hasSearched && results.length === 0 && !loading && (
+      {hasSearched && results.length === 0 && !loading && !error && (
         <p className="status">No search results found.</p>
       )}
 
@@ -229,24 +256,24 @@ const App: React.FC = () => {
         <section className="results-section">
           <h2>Flight Results</h2>
           <div className="results-grid">
-            {results.map((flight: Flight, index: number) => (
-              <div className="flight-card" key={index}>
+            {results.map((flight: Flight, i: number) => (
+              <div className="flight-card" key={i}>
                 <div className="card-content">
                   <div className="airline-info">
                     {flight.logoUrl && (
                       <img
                         src={flight.logoUrl}
-                        alt={`${flight.airline_name} logo`}
+                        alt={'airline logo'}
                         className="airline-logo"
                       />
                     )}
                     <h3>{flight.airline_name || 'N/A'}</h3>
                   </div>
                   <p>
-                    <strong>Departure:</strong> {flight.departure_time || 'N/A'}
+                    <strong>Departure:</strong> {formatDateTime(flight.departure_time)}
                   </p>
                   <p>
-                    <strong>Arrival:</strong> {flight.arrival_time || 'N/A'}
+                    <strong>Arrival:</strong> {formatDateTime(flight.arrival_time)}
                   </p>
                   <p>
                     <strong>Price:</strong> {flight.price ? `$${flight.price}` : 'N/A'}
