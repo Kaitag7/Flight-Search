@@ -2,9 +2,9 @@ import { Flight } from './lib/types'
 import { formatDateTime } from './lib/format'
 
 interface Props {
-    selectedFlight: Flight | null
-    closeModal: () => void
-    showToast: () => void
+    selectedFlight: Flight | null;
+    closeModal: () => void;
+    showToast: () => void;
 }
 
 const ModalFlight: React.FC<Props> = ({ selectedFlight, closeModal, showToast }) => {

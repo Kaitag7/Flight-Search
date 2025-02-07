@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Airport, Flight, FlightItinerary, FlightSearchResponse, SearchAirportResponse } from './lib/types';
 import { RAPIDAPI_HOST, RAPIDAPI_KEY } from './lib/credentials';
-import { formatDateTime } from './lib/format';
+import ModalFlight from './ModalFlight';
+import { Card } from './Card';
 
 import './App.css';
-import ModalFlight from './ModalFlight';
 
 const App: React.FC = () => {
   const [origin, setOrigin] = useState<string>('');
@@ -207,38 +207,7 @@ const App: React.FC = () => {
         <p className="status">No search results found.</p>
       )}
 
-      {results.length > 0 && (
-        <section className="results-section">
-          <h2>Flight Results</h2>
-          <div className="results-grid">
-            {results.map((flight: Flight, i: number) => (
-              <div className="flight-card" key={i} onClick={() => openModal(flight)}>
-                <div className="card-content">
-                  <div className="airline-info">
-                    {flight.logoUrl && (
-                      <img
-                        src={flight.logoUrl}
-                        alt={'airline logo'}
-                        className="airline-logo"
-                      />
-                    )}
-                    <h3>{flight.airline_name || 'N/A'}</h3>
-                  </div>
-                  <p>
-                    <strong>Departure:</strong> {formatDateTime(flight.departure_time)}
-                  </p>
-                  <p>
-                    <strong>Arrival:</strong> {formatDateTime(flight.arrival_time)}
-                  </p>
-                  <p>
-                    <strong>Price:</strong> {flight.price ? `$${flight.price}` : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {results.length > 0 && <Card flights={results} openModal={openModal} />}
 
       {selectedFlight && <ModalFlight selectedFlight={selectedFlight} closeModal={closeModal} showToast={showToast} />}
 
