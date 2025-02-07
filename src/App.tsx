@@ -1,67 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Airport, Flight, FlightItinerary, FlightSearchResponse, SearchAirportResponse } from './lib/types';
+import { RAPIDAPI_HOST, RAPIDAPI_KEY } from './lib/credentials';
+import { formatDateTime } from './lib/format';
+
 import './App.css';
-
-interface Flight {
-  airline_name: string;
-  departure_time: string;
-  arrival_time: string;
-  price: number;
-  logoUrl?: string;
-}
-
-interface Airport {
-  skyId: string;
-  entityId: string;
-  presentation: {
-    title: string;
-    suggestionTitle: string;
-    subtitle: string;
-  };
-  navigation: {
-    entityId: string;
-    relevantFlightParams: {
-      skyId: string;
-    };
-  };
-}
-
-interface SearchAirportResponse {
-  status: boolean;
-  data: Airport[];
-}
-
-interface FlightLeg {
-  departure: string;
-  arrival: string;
-  carriers: {
-    marketing: {
-      name: string;
-      logoUrl: string;
-    }[];
-  };
-}
-
-interface FlightItinerary {
-  legs: FlightLeg[];
-  price: {
-    raw: number;
-  };
-}
-
-interface FlightSearchResponse {
-  status: boolean;
-  data: {
-    context: {
-      status: string;
-      totalResults: number;
-    };
-    itineraries: FlightItinerary[];
-  };
-}
-
-const RAPIDAPI_KEY = '5cbccecd61msh9dd0e12271e3eb7p139435jsndc86a28023df';
-const RAPIDAPI_HOST = 'sky-scrapper.p.rapidapi.com';
+import ModalFlight from './ModalFlight';
 
 const App: React.FC = () => {
   const [origin, setOrigin] = useState<string>('');
@@ -177,15 +121,26 @@ const App: React.FC = () => {
     }
   };
 
-  const formatDateTime = (date: string): string => {
-    if (!date) return 'N/A';
-  
-    const localDate = new Date(date);
-    return localDate.toLocaleString();
+  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+
+  const openModal = (flight: Flight) => {
+    setSelectedFlight(flight);
+  };
+
+  const closeModal = () => {
+    setSelectedFlight(null);
+  };
+
+  const [toastVisible, setToastVisible] = useState<boolean>(false);
+
+  const showToast = () => {
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
   };
 
   return (
     <div className="container">
+      <div className="background"></div>
       <header>
         <h1>Flight Search</h1>
       </header>
@@ -199,7 +154,7 @@ const App: React.FC = () => {
                 id="origin"
                 type="text"
                 className="form-control"
-                placeholder="e.g., JFK or New York"
+                placeholder="JFK or New York"
                 value={origin}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrigin(e.target.value)}
                 required
@@ -212,7 +167,7 @@ const App: React.FC = () => {
                 id="destination"
                 type="text"
                 className="form-control"
-                placeholder="e.g., LAX or Los Angeles"
+                placeholder="LAX or Los Angeles"
                 value={destination}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDestination(e.target.value)}
                 required
@@ -257,7 +212,7 @@ const App: React.FC = () => {
           <h2>Flight Results</h2>
           <div className="results-grid">
             {results.map((flight: Flight, i: number) => (
-              <div className="flight-card" key={i}>
+              <div className="flight-card" key={i} onClick={() => openModal(flight)}>
                 <div className="card-content">
                   <div className="airline-info">
                     {flight.logoUrl && (
@@ -283,6 +238,12 @@ const App: React.FC = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {selectedFlight && <ModalFlight selectedFlight={selectedFlight} closeModal={closeModal} showToast={showToast} />}
+
+      {toastVisible && (
+        <div className="toast">Flight successfully purchased!</div>
       )}
     </div>
   );
